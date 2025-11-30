@@ -8,6 +8,8 @@ export const initialApp = (app, express) => {
 
   // Routes
   app.use("/user", indexRouter.userRoutes);
+  app.use("/project", indexRouter.projectRoutes);
+  app.use("/portfolio", indexRouter.portfolioRoutes);
 
   // Global Error Handler
   app.use(globalError);

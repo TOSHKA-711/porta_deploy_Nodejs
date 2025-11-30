@@ -17,7 +17,7 @@ export const sendMailService = async({to,subject,message,attaches=[]}={})=>{
     })
 
     const emailInfo = transporter.sendMail({
-        from:'"3amak Toshka" <aliovich711@gmail.com>',
+        from:'"3amak Ali" <aliovich711@gmail.com>',
         to: to ? to : "",
         subject : subject? subject : "test",
         html : message? message : "",

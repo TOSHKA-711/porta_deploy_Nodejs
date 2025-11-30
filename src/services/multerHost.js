@@ -1,22 +1,20 @@
 import multer from "multer";
-import { allowedExtensions } from "../utils/allowedExtensions.js";
 
-export const multerHost = (extensions) => {
-  if (!extensions) {
-    extensions = allowedExtensions.images;
-  }
-
+export const multerHost = () => {
   const storage = multer.diskStorage({});
 
   const fileFilter = (req, file, cb) => {
-    if (extensions.includes(file.mimetype)) {
-      return cb(null , true);
-    }
-
-    cb(new Error("invalid file type", { cause: 400 }));
+    cb(null, true);
   };
 
-  const fileUpload = multer({ fileFilter, storage, limits: { files: 4 } });
+  const fileUpload = multer({
+    fileFilter,
+    storage,
+    limits: {
+      fileSize: 100 * 1024 * 1024, // 50MB لكل ملف
+      files: 1000, // عدد الملفات كحد أقصى
+    },
+  });
 
   return fileUpload;
 };

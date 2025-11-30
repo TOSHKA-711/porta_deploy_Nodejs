@@ -7,6 +7,15 @@ export const userSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
     },
+    name: {
+      type: String,
+    },
+    country: {
+      type: String,
+    },
+    image: {
+      type: String,
+    },
     email: {
       type: String,
       required: true,
@@ -15,15 +24,6 @@ export const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-    },
-    profilePic: {
-      public_id: String,
-      secure_url: String,
-    },
-    customId: {
-      type: String,
-      required: true,
-      unique: true,
     },
     isConfirmed: {
       type: Boolean,
@@ -34,24 +34,17 @@ export const userSchema = new mongoose.Schema(
       enum: ["male", "female"],
       default: "male",
     },
-    role: {
-      type: String,
-      enum: ["admin", "user"],
-      default:"user",
-      required: true,
-    },
+    githubUsername: { type: String },
+    githubToken: { type: String },
+    vercelToken: { type: String },
+
   },
+
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
-
-userSchema.virtual("products", {
-  ref: "product",
-  foreignField: "createdBy",
-  localField: "_id",
-});
 
 export const userModel = mongoose.model("user", userSchema);
