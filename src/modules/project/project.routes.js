@@ -12,8 +12,8 @@ router.get("/getGithubRepos", isAuth(), errorHandler(pc.getGithubRepos));
 
 router.post(
   "/uploadProject",
-  // multerHost().any("files"),
   isAuth(),
+  multerHost().single("projectZip"),
   errorHandler(pc.uploadProject)
 );
 

@@ -5,11 +5,15 @@ import { initialApp } from "./src/utils/initialApp.js";
 import cors from "cors";
 
 const app = express();
-app.use(express.json());
 
-app.use(cors({
-  origin: "*", 
-}));
+// Increase JSON body size limit (for safety, although file uploads use multer)
+app.use(express.json({ limit: "1000mb" }));
+
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 
 config({ path: path.resolve("./config/config.env") });

@@ -1,4 +1,7 @@
 import fetch from "node-fetch";
+import fs from "fs";
+import path from "path";
+import * as unzipper from "unzipper";
 import { userModel } from "../../../DB/models/userModel.js";
 import { projectModel } from "../../../DB/models/projectModel.js";
 import cloudinary from "../../utils/multerConfig.js";
@@ -34,14 +37,21 @@ export const getGithubRepos = async (req, res, next) => {
 
 // upload to github
 export const uploadProject = async (req, res, next) => {
-  const { folderPath, repoName } = req.body;
+  const { folderPath: bodyFolderPath, repoName } = req.body;
   const { userData } = req;
   const commitMessage = "Upload via PortaDeploy";
 
   if (!userData) return next(new Error("user data not found", { cause: 404 }));
 
-  if (!folderPath || !repoName)
-    return res.status(400).json({ error: "folderPath and repoName required" });
+  if (!repoName) {
+    return res.status(400).json({ error: "repoName is required" });
+  }
+
+  if (!req.file && !bodyFolderPath) {
+    return res
+      .status(400)
+      .json({ error: "projectZip file or folderPath is required" });
+  }
 
   const userCheck = await userModel.findById(userData.id);
   if (!userCheck) return next(new Error("user not Exist", { cause: 404 }));
@@ -59,12 +69,61 @@ export const uploadProject = async (req, res, next) => {
   // 2) Build authenticated repo URL
   const repoUrl = repo.cloneUrl.replace("https://", `https://${GITHUB_TOKEN}@`);
 
+  let tempFolderPath = null;
+  let zipFilePath = null;
+  let finalFolderPath = bodyFolderPath;
+
   try {
+    // If a zip file of the project was uploaded, extract it to a temp folder
+    if (req.file) {
+      zipFilePath = req.file.path;
+
+      const tempBase = path.resolve("temp");
+      if (!fs.existsSync(tempBase)) {
+        fs.mkdirSync(tempBase, { recursive: true });
+      }
+
+      tempFolderPath = path.join(
+        tempBase,
+        `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      );
+      fs.mkdirSync(tempFolderPath, { recursive: true });
+
+      await fs
+        .createReadStream(zipFilePath)
+        .pipe(unzipper.Extract({ path: tempFolderPath }))
+        .promise();
+
+      finalFolderPath = tempFolderPath;
+    }
+
     // 3) Upload local folder → GitHub repo
-    const output = await ProjectUploader(folderPath, repoUrl, commitMessage);
+    const output = await ProjectUploader(
+      finalFolderPath,
+      repoUrl,
+      commitMessage
+    );
+
     res.json({ success: true, repoUrl: repo.htmlUrl, message: output });
   } catch (err) {
     res.status(500).json({ message: "Failed", err });
+  } finally {
+    // Clean up temp extracted folder and uploaded zip (if any)
+    if (tempFolderPath) {
+      try {
+        await fs.promises.rm(tempFolderPath, { recursive: true, force: true });
+      } catch (e) {
+        console.error("Failed to remove temp folder:", e);
+      }
+    }
+
+    if (zipFilePath) {
+      try {
+        await fs.promises.unlink(zipFilePath);
+      } catch (e) {
+        console.error("Failed to remove uploaded zip file:", e);
+      }
+    }
   }
 };
 
