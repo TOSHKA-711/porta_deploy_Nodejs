@@ -36,52 +36,54 @@ export const getGithubRepos = async (req, res, next) => {
 };
 
 // upload to github
+
 export const uploadProject = async (req, res, next) => {
-  const { folderPath: bodyFolderPath, repoName } = req.body;
-  const { userData } = req;
-  const commitMessage = "Upload via PortaDeploy";
-
-  if (!userData) return next(new Error("user data not found", { cause: 404 }));
-
-  if (!repoName) {
-    return res.status(400).json({ error: "repoName is required" });
-  }
-
-  if (!req.file && !bodyFolderPath) {
-    return res
-      .status(400)
-      .json({ error: "projectZip file or folderPath is required" });
-  }
-
-  const userCheck = await userModel.findById(userData.id);
-  if (!userCheck) return next(new Error("user not Exist", { cause: 404 }));
-
-  const GITHUB_TOKEN = userCheck.githubToken;
-  if (!GITHUB_TOKEN)
-    return next(new Error("Github token not found", { cause: 400 }));
-
-  // 1) Create GitHub repo
-  const repo = await createGitHubRepo(repoName, GITHUB_TOKEN);
-
-  if (!repo.success)
-    return next(new Error("Failed to create github repo", { cause: 500 }));
-
-  // 2) Build authenticated repo URL
-  const repoUrl = repo.cloneUrl.replace("https://", `https://${GITHUB_TOKEN}@`);
-
-  let tempFolderPath = null;
+  let tempFolderPath = null; // ✅ لازم يكون هنا
   let zipFilePath = null;
-  let finalFolderPath = bodyFolderPath;
+  const uploadsDir = path.resolve("uploads"); // مسار مجلد uploads
 
   try {
-    // If a zip file of the project was uploaded, extract it to a temp folder
+    const { folderPath: bodyFolderPath, repoName } = req.body;
+    const { userData } = req;
+    const commitMessage = "Upload via PortaDeploy";
+
+    if (!userData)
+      return next(new Error("User data not found", { cause: 404 }));
+
+    if (!repoName)
+      return res.status(400).json({ error: "repoName is required" });
+
+    if (!req.file && !bodyFolderPath)
+      return res
+        .status(400)
+        .json({ error: "projectZip file or folderPath is required" });
+
+    const userCheck = await userModel.findById(userData.id);
+    if (!userCheck) return next(new Error("User not exist", { cause: 404 }));
+
+    const GITHUB_TOKEN = userCheck.githubToken;
+    if (!GITHUB_TOKEN)
+      return next(new Error("Github token not found", { cause: 400 }));
+
+    // ✅ 1) Create GitHub repo
+    const repo = await createGitHubRepo(repoName, GITHUB_TOKEN);
+    if (!repo.success)
+      return next(new Error("Failed to create GitHub repo", { cause: 500 }));
+
+    // ✅ 2) Build authenticated repo URL
+    const repoUrl = repo.cloneUrl.replace(
+      "https://",
+      `https://${GITHUB_TOKEN}@`
+    );
+
+    let finalFolderPath = bodyFolderPath;
+
+    // ✅ 3) If a zip file was uploaded, extract it
     if (req.file) {
       zipFilePath = req.file.path;
 
       const tempBase = path.resolve("temp");
-      if (!fs.existsSync(tempBase)) {
-        fs.mkdirSync(tempBase, { recursive: true });
-      }
+      if (!fs.existsSync(tempBase)) fs.mkdirSync(tempBase, { recursive: true });
 
       tempFolderPath = path.join(
         tempBase,
@@ -97,31 +99,42 @@ export const uploadProject = async (req, res, next) => {
       finalFolderPath = tempFolderPath;
     }
 
-    // 3) Upload local folder → GitHub repo
-    const output = await ProjectUploader(
-      finalFolderPath,
-      repoUrl,
-      commitMessage
-    );
+    // ✅ 4) Upload local folder → GitHub repo
+    await ProjectUploader(finalFolderPath, repoUrl, commitMessage);
 
-    res.json({ success: true, repoUrl: repo.htmlUrl, message: output });
+    // ✅ ✅ ✅ الرد النهائي (آخر سطر منطقي)
+    return res.status(200).json({
+      success: true,
+      repoUrl: repo.htmlUrl,
+      message: "Project pushed to GitHub successfully",
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed", err });
-  } finally {
-    // Clean up temp extracted folder and uploaded zip (if any)
-    if (tempFolderPath) {
-      try {
-        await fs.promises.rm(tempFolderPath, { recursive: true, force: true });
-      } catch (e) {
-        console.error("Failed to remove temp folder:", e);
-      }
-    }
+    console.error(err);
 
+    // ✅ لازم return
+    return res.status(500).json({
+      message: "Failed",
+      error: err.message || err,
+    });
+  } finally {
+    // حذف ملف الـ ZIP اللي اتخزّن في uploads/
     if (zipFilePath) {
       try {
         await fs.promises.unlink(zipFilePath);
       } catch (e) {
-        console.error("Failed to remove uploaded zip file:", e);
+        console.error("Failed to remove uploaded zip file:", e.message);
+      }
+    }
+
+    // حذف الفولدر المؤقت اللي فكينا فيه الضغط (temp/xxxxxx)
+    if (tempFolderPath) {
+      try {
+        await fs.promises.rm(tempFolderPath, {
+          recursive: true,
+          force: true,
+        });
+      } catch (e) {
+        console.error("Failed to remove temp folder:", e.message);
       }
     }
   }

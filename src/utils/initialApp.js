@@ -6,10 +6,12 @@ export const initialApp = (app, express) => {
   connectDB();
   const port = process.env.PORT;
 
-  // Routes
-  app.use("/user", indexRouter.userRoutes);
-  app.use("/project", indexRouter.projectRoutes);
-  app.use("/portfolio", indexRouter.portfolioRoutes);
+  // Multer route: project upload
+  app.use("/project", indexRouter.projectRoutes); // Multer يمسك الملفات أولاً
+
+  // فقط للراوتات العادية اللي محتاجة JSON body
+  app.use("/user", express.json({ limit: "1000mb" }), indexRouter.userRoutes);
+  app.use("/portfolio", express.json({ limit: "1000mb" }), indexRouter.portfolioRoutes);
 
   // Global Error Handler
   app.use(globalError);
