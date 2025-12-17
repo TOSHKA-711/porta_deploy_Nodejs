@@ -168,6 +168,8 @@ export const gitHubAuth = async (req, res, next) => {
           client_secret: process.env.GITHUB_CLIENT_SECRET,
           code,
           redirect_uri: "https://porta-deploy-saas.vercel.app/auth/callback",
+          // redirect_uri: "http://localhost:3000/auth/callback",
+
         }),
       }
     );

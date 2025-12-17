@@ -7,14 +7,17 @@ import time
 def run(cmd, check=True):
     """Run shell commands and print everything"""
     print(f"\n🔹 Running: {' '.join(cmd)}")
+    sys.stdout.flush()
 
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.stdout:
         print("🟢 STDOUT:", result.stdout.strip())
+        sys.stdout.flush()
 
     if result.stderr:
         print("🔴 STDERR:", result.stderr.strip())
+        sys.stderr.flush()
 
     if check and result.returncode != 0:
         raise Exception(
@@ -26,10 +29,15 @@ def run(cmd, check=True):
 
 def upload_git(folder_path, repo_url, commit_message="Initial commit"):
     print("\n============================================")
+    sys.stdout.flush()
     print("🚀 Starting Git upload process…")
+    sys.stdout.flush()
     print("Folder:", folder_path)
+    sys.stdout.flush()
     print("Repo URL:", repo_url.replace(repo_url[13:33], "***TOKEN-HIDDEN***"))
+    sys.stdout.flush()
     print("============================================\n")
+    sys.stdout.flush()
 
     # CHANGE FOLDER
     os.chdir(folder_path)
@@ -103,23 +111,31 @@ def upload_git(folder_path, repo_url, commit_message="Initial commit"):
 
 
 if __name__ == "__main__":
+    # Immediate output to confirm script started
+    print("Python script started!", flush=True)
+    sys.stdout.flush()
 
     if len(sys.argv) < 3:
-        print("Usage: python upload_git.py <folder_path> <repo_url> [commit_message]")
+        print("Usage: python upload_git.py <folder_path> <repo_url> [commit_message]", flush=True)
         sys.exit(1)
 
     folder = sys.argv[1]
     repo = sys.argv[2]
     message = sys.argv[3] if len(sys.argv) > 3 else "Upload via PortaDeploy"
 
+    print(f"Received arguments: folder={folder}, repo={repo[:50]}..., message={message}", flush=True)
+    sys.stdout.flush()
+
     try:
         upload_git(folder, repo, message)
-        print("\n==============================")
-        print("🎉 Upload completed successfully!")
-        print("==============================")
+        print("\n==============================", flush=True)
+        print("🎉 Upload completed successfully!", flush=True)
+        print("==============================", flush=True)
+        sys.stdout.flush()
     except Exception as e:
-        print("\n==============================")
-        print("❌ Upload FAILED!")
-        print("Reason:", str(e))
-        print("==============================")
+        print("\n==============================", flush=True)
+        print("❌ Upload FAILED!", flush=True)
+        print("Reason:", str(e), flush=True)
+        print("==============================", flush=True)
+        sys.stderr.flush()
         sys.exit(1)

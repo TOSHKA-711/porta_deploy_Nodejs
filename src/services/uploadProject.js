@@ -10,6 +10,11 @@ export const ProjectUploader = (folderPath, repoUrl, commitMessage) => {
     const pythonPath = path.resolve(__dirname, "upload_git.py");
 
     console.log("Python script path:", pythonPath);
+    console.log("Uploading folder:", folderPath);
+    console.log(
+      "Repo URL:",
+      repoUrl.replace(/https:\/\/[^@]+@/, "https://***@")
+    );
 
     execFile(
       "python3",
@@ -22,10 +27,39 @@ export const ProjectUploader = (folderPath, repoUrl, commitMessage) => {
         console.log(stderr || "<empty>");
 
         if (err) {
-          console.error("Python script error:", err.message || err);
-          return reject({
-            message: err.message || "Unknown error",
+          console.error("Python script error:", {
+            message: err.message,
             code: err.code,
+            signal: err.signal,
+            stdout,
+            stderr,
+          });
+
+          // Extract meaningful error message
+          let errorMessage = err.message || "Unknown error";
+          if (stderr) {
+            errorMessage = stderr.trim() || errorMessage;
+          } else if (stdout && stdout.includes("Error:")) {
+            errorMessage = stdout.trim();
+          }
+
+          return reject({
+            message: errorMessage,
+            code: err.code,
+            signal: err.signal,
+            stdout: stdout || "",
+            stderr: stderr || "",
+          });
+        }
+
+        // Check if stdout contains error indicators
+        if (
+          stdout &&
+          (stdout.includes("Error:") || stdout.includes("fatal:"))
+        ) {
+          console.error("Git operation failed:", stdout);
+          return reject({
+            message: stdout.trim() || "Git operation failed",
             stdout,
             stderr,
           });

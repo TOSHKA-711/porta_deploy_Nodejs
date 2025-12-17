@@ -10,24 +10,40 @@ export const createGitHubRepo = async (repoName, githubToken) => {
       },
       {
         headers: {
-          Authorization: `token ${githubToken}`,
+          Authorization: `Bearer ${githubToken}`, // Updated to use Bearer instead of token
           Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
         },
       }
     );
 
     return {
       success: true,
-      cloneUrl: response.data.clone_url,  
+      cloneUrl: response.data.clone_url,
       sshUrl: response.data.ssh_url,
       htmlUrl: response.data.html_url,
     };
-
   } catch (err) {
-    console.error(err.response?.data || err);
+    // Enhanced error logging
+    const errorData = err.response?.data || {};
+    const errorMessage = errorData.message || err.message || "Unknown error";
+    const statusCode = err.response?.status || 500;
+
+    console.error("GitHub API Error:", {
+      status: statusCode,
+      message: errorMessage,
+      errors: errorData.errors,
+      fullError: errorData,
+    });
+
     return {
       success: false,
-      error: err.response?.data || err.message,
+      error: {
+        message: errorMessage,
+        status: statusCode,
+        errors: errorData.errors || [],
+        details: errorData,
+      },
     };
   }
 };
