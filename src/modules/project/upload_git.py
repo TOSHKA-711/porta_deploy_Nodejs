@@ -42,14 +42,26 @@ def upload_git(folder_path, repo_url, commit_message="Initial commit"):
     # CHANGE FOLDER
     os.chdir(folder_path)
 
-    # step 1 — user config
-    print("\n🔹 Setting user config…")
-    run(["git", "config", "user.email", "deploy@porta.io"], check=False)
-    run(["git", "config", "user.name", "PortaDeploy"], check=False)
+    # Set environment variables for git author (works even before git init)
+    os.environ["GIT_AUTHOR_NAME"] = "PortaDeploy"
+    os.environ["GIT_AUTHOR_EMAIL"] = "deploy@porta.io"
+    os.environ["GIT_COMMITTER_NAME"] = "PortaDeploy"
+    os.environ["GIT_COMMITTER_EMAIL"] = "deploy@porta.io"
 
-    # step 2 — init repo
+    # step 1 — init repo first
     print("\n🔹 Initializing repo…")
     run(["git", "init"], check=False)
+
+    # step 2 — set user config (must be after git init)
+    print("\n🔹 Setting user config…")
+    email_result = run(["git", "config", "user.email", "deploy@porta.io"], check=False)
+    name_result = run(["git", "config", "user.name", "PortaDeploy"], check=False)
+    
+    # Verify config was set
+    verify_email = run(["git", "config", "user.email"], check=False)
+    verify_name = run(["git", "config", "user.name"], check=False)
+    print(f"✅ Verified git config - Email: {verify_email.stdout.strip()}, Name: {verify_name.stdout.strip()}")
+    sys.stdout.flush()
 
     # step 3 — force main branch
     print("\n🔹 Switching to main branch…")
