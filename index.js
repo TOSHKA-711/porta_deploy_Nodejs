@@ -16,6 +16,7 @@ const allowedOrigins = [
   "http://localhost:5173", // Vite default
   "http://localhost:5174",
   "http://localhost:8080",
+  "*",
   process.env.FRONTEND_URL, // Allow custom frontend URL from env
 ].filter(Boolean); // Remove undefined values
 
@@ -51,6 +52,5 @@ app.use(
     ],
   })
 );
-
 
 initialApp(app, express);
